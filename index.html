@@ -368,6 +368,10 @@
         <input type="number" id="inp-iv" placeholder="auto-fetch" step="1" min="1" max="500" />
       </div>
     </div>
+    <div class="field" style="margin-bottom:14px">
+      <label>Anthropic API key <span style="color:#3d5060;font-weight:400;letter-spacing:0">(saved locally in browser)</span></label>
+      <input type="password" id="inp-apikey" placeholder="sk-ant-..." style="font-family:var(--mono);letter-spacing:0.05em" />
+    </div>
     <button class="calc-btn" onclick="calculate()" id="calc-btn">Calculate OTM probability</button>
     <div id="status"></div>
   </div>
@@ -390,20 +394,15 @@
 const API='https://api.anthropic.com/v1/messages';
 
 function getApiKey(){
-  let key=localStorage.getItem('anthropic_api_key')||'';
-  if(!key){
-    key=prompt('Enter your Anthropic API key (sk-ant-...) to enable auto-fetch.\nGet one at console.anthropic.com. It will be saved in your browser locally.');
-    if(key&&key.trim().length>10){localStorage.setItem('anthropic_api_key',key.trim());key=key.trim();}
-    else{key='';}
-  }
-  return key;
+  return (document.getElementById('inp-apikey')||{}).value||localStorage.getItem('anthropic_api_key')||'';
 }
 
 function apiHeaders(){
   const key=getApiKey();
+  if(key&&key.length>10) localStorage.setItem('anthropic_api_key',key.trim());
   return {
     'Content-Type':'application/json',
-    'x-api-key':key,
+    'x-api-key':key.trim(),
     'anthropic-version':'2023-06-01',
     'anthropic-dangerous-direct-browser-access':'true'
   };
@@ -657,6 +656,10 @@ function render(ticker,price,callChain,putChain,ivOverride,ivSrc,expiry){
   document.getElementById('tables').innerHTML=tablesHtml;
   document.getElementById('results').classList.remove('hidden');
 }
+
+// Pre-fill API key from localStorage
+const savedKey=localStorage.getItem('anthropic_api_key')||'';
+if(savedKey&&document.getElementById('inp-apikey'))document.getElementById('inp-apikey').value=savedKey;
 
 // Set default expiry to next Friday
 const d=new Date();
