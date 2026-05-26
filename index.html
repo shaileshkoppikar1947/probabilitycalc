@@ -368,9 +368,17 @@
         <input type="number" id="inp-iv" placeholder="auto-fetch" step="1" min="1" max="500" />
       </div>
     </div>
-    <div class="field" style="margin-bottom:14px">
-      <label>Anthropic API key <span style="color:#3d5060;font-weight:400;letter-spacing:0">(saved locally in browser)</span></label>
-      <input type="password" id="inp-apikey" placeholder="sk-ant-..." style="font-family:var(--mono);letter-spacing:0.05em" />
+    <div style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <label style="font-family:var(--mono);font-size:10px;color:#3d5060;letter-spacing:0.12em;text-transform:uppercase">Anthropic API key</label>
+        <div style="display:flex;gap:8px">
+          <button onclick="clearApiKey()" style="background:none;border:1px solid #3d5060;color:#3d5060;border-radius:4px;padding:2px 8px;font-size:10px;font-family:var(--mono);cursor:pointer">Clear</button>
+          <button onclick="testApiKey()" style="background:none;border:1px solid #3d5060;color:#3d5060;border-radius:4px;padding:2px 8px;font-size:10px;font-family:var(--mono);cursor:pointer">Test key</button>
+        </div>
+      </div>
+      <input type="text" id="inp-apikey" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false"
+        style="font-family:var(--mono);font-size:11px;letter-spacing:0.03em;width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);padding:9px 12px;outline:none" />
+      <div id="key-status" style="font-size:10px;font-family:var(--mono);margin-top:4px;min-height:14px;color:#3d5060">Paste your key above — get one at console.anthropic.com/api-keys</div>
     </div>
     <button class="calc-btn" onclick="calculate()" id="calc-btn">Calculate OTM probability</button>
     <div id="status"></div>
@@ -394,7 +402,9 @@
 const API='https://api.anthropic.com/v1/messages';
 
 function getApiKey(){
-  return (document.getElementById('inp-apikey')||{}).value||localStorage.getItem('anthropic_api_key')||'';
+  const el=document.getElementById('inp-apikey');
+  const val=el?el.value.trim():'';
+  return val||localStorage.getItem('anthropic_api_key')||'';
 }
 
 function apiHeaders(){
@@ -483,6 +493,36 @@ function strikes(price,type){
     }
   }
   return [...new Set(arr)];
+}
+
+function clearApiKey(){
+  localStorage.removeItem('anthropic_api_key');
+  document.getElementById('inp-apikey').value='';
+  document.getElementById('key-status').textContent='Key cleared — paste new key above';
+  document.getElementById('key-status').style.color='#f5a623';
+}
+
+async function testApiKey(){
+  const key=document.getElementById('inp-apikey').value.trim();
+  if(!key){document.getElementById('key-status').textContent='Paste a key first';document.getElementById('key-status').style.color='#ff4d4d';return;}
+  document.getElementById('key-status').textContent='Testing...';
+  document.getElementById('key-status').style.color='#3d5060';
+  try{
+    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:10,messages:[{role:'user',content:'hi'}]})});
+    const d=await r.json();
+    if(d.content||d.id){
+      localStorage.setItem('anthropic_api_key',key);
+      document.getElementById('key-status').textContent='✓ Key works — saved to browser';
+      document.getElementById('key-status').style.color='#00e5a0';
+    } else if(d.error){
+      document.getElementById('key-status').textContent='✗ '+d.error.message;
+      document.getElementById('key-status').style.color='#ff4d4d';
+    }
+  }catch(e){
+    document.getElementById('key-status').textContent='✗ Error: '+e.message;
+    document.getElementById('key-status').style.color='#ff4d4d';
+  }
 }
 
 function setStatus(msg,loading){
