@@ -389,6 +389,26 @@
 <script>
 const API='https://api.anthropic.com/v1/messages';
 
+function getApiKey(){
+  let key=localStorage.getItem('anthropic_api_key')||'';
+  if(!key){
+    key=prompt('Enter your Anthropic API key (sk-ant-...) to enable auto-fetch.\nGet one at console.anthropic.com. It will be saved in your browser locally.');
+    if(key&&key.trim().length>10){localStorage.setItem('anthropic_api_key',key.trim());key=key.trim();}
+    else{key='';}
+  }
+  return key;
+}
+
+function apiHeaders(){
+  const key=getApiKey();
+  return {
+    'Content-Type':'application/json',
+    'x-api-key':key,
+    'anthropic-version':'2023-06-01',
+    'anthropic-dangerous-direct-browser-access':'true'
+  };
+}
+
 function normCDF(x){
   const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
   const sign=x<0?-1:1; x=Math.abs(x)/Math.sqrt(2);
@@ -475,7 +495,7 @@ async function fetchWhaleQuant(ticker,expiry){
   const url=`https://whalequant.io/en/stocks/${ticker}/options/${expiry}`;
   const resp=await fetch(API,{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:apiHeaders(),
     body:JSON.stringify({
       model:'claude-sonnet-4-20250514',
       max_tokens:2000,
@@ -499,7 +519,7 @@ async function fetchWhaleQuant(ticker,expiry){
 async function fetchPrice(ticker){
   const resp=await fetch(API,{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:apiHeaders(),
     body:JSON.stringify({
       model:'claude-sonnet-4-20250514',
       max_tokens:200,
